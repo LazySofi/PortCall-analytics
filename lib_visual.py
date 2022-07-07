@@ -200,7 +200,6 @@ def age__histogram(date_from, date_to, basin, ship_type, ship_flag):
     return fig
 
 
-#@st.experimental_memo(ttl=24*60*60)
 def ship_type_pie(date_from, date_to, basin, ship_flag, pie):
     with Session(engine) as session:
         query = session.query(
@@ -279,7 +278,6 @@ def ship_type_pie(date_from, date_to, basin, ship_flag, pie):
     return fig
 
 
-#@st.experimental_memo(ttl=24*60*60)
 def ship_flag_pie(date_from, date_to, basin, ship_type, pie):
     with Session(engine) as session:
         query = session.query(
