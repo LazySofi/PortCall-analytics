@@ -14,11 +14,8 @@ def params():
     basin = st.sidebar.multiselect('Бассейн', basins(), 'Дальневосточный бассейн')
     ship_type = st.sidebar.multiselect('Тип судна', ship_types(),  '60 / General cargo/multi-purpose ship')
     ship_flag = st.sidebar.multiselect('Флаг судна', ship_flags(), 'RU - RUSSIAN FEDERATION')
-    
-    #st.sidebar.slider('Тоннажность корабля', 0, 10, (2, 5))
 
     return date_from, date_to, basin, ship_type, ship_flag
-
 
 def visualize_data(date_from, date_to, basin, ship_type, ship_flag):
     #график динамики
@@ -52,7 +49,6 @@ def visualize_data(date_from, date_to, basin, ship_type, ship_flag):
                     'Точность - сколько типов флагов показать в графике', unsafe_allow_html=True)
     pie2.plotly_chart(ship_flag_pie(date_from, date_to, basin, ship_type, pie2),  use_container_width=True)
         
-
     #длина судна, ширина судна
     histogram11,  histogram12 = st.columns([1, 1])
     histogram11.subheader('Длина судов')
@@ -75,10 +71,13 @@ def main():
 
     date_from, date_to, basin, ship_type, ship_flag = params()
 
+    btn = st.sidebar.button('Применить')
+
     make_excel(date_from, date_to, basin, ship_type, ship_flag)
     st.sidebar.info('Данные взяты с сайта: [portcalltable.marinet.ru](https://portcalltable.marinet.ru/index.php)')
 
-    visualize_data(date_from, date_to, basin, ship_type, ship_flag)
+    if btn:
+        visualize_data(date_from, date_to, basin, ship_type, ship_flag)    
 
 
 if __name__ == "__main__":
