@@ -4,8 +4,9 @@ from sqlalchemy import Table
 from sqlalchemy.orm import declarative_base
 import streamlit as st
 
+
 engine  = create_engine(
-                        URL.create(**st.secrets["postgres"]),
+                        URL.create(**st.secrets['postgres']),
                         )
 Base = declarative_base()
 
