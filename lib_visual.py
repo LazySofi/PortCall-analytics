@@ -13,12 +13,14 @@ import io
 
 #параметры
 
+@st.experimental_memo(ttl=24*60*60)
 def time_upd():
     with Session(engine) as session:
         q = session.query(PortCall.arrival).order_by(desc(PortCall.arrival)).first()
     return 'Дата последней подгрузки данных: **' + str(q[0]).split(' ')[0] + '**'
 
 
+@st.experimental_memo(ttl=24*60*60)
 def basins():
     with Session(engine) as session:
         q = session.query(Port.basin).group_by(Port.basin).all()
@@ -26,6 +28,7 @@ def basins():
     return df
 
 
+@st.experimental_memo(ttl=24*60*60)
 def ship_types():
     with Session(engine) as session:
         q = session.query(Ship.type).group_by(Ship.type).order_by(Ship.type).all()
@@ -33,6 +36,7 @@ def ship_types():
     return df
 
 
+@st.experimental_memo(ttl=24*60*60)
 def ship_flags():
     with Session(engine) as session:
         q = session.query(Ship.flag).group_by(Ship.flag).order_by(Ship.flag).all()
@@ -41,6 +45,7 @@ def ship_flags():
 
 #визуализация
 
+@st.experimental_memo(ttl=24*60*60)
 def ship_call_dynamics(date_from, date_to, basin, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query(
@@ -94,6 +99,7 @@ def ship_call_dynamics(date_from, date_to, basin, ship_type, ship_flag):
     return fig
 
 
+@st.experimental_memo(ttl=24*60*60)
 def heat_map_ship_call_dynamics(date_from, date_to, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query(
@@ -141,6 +147,7 @@ def heat_map_ship_call_dynamics(date_from, date_to, ship_type, ship_flag):
     return fig
 
 
+@st.experimental_memo(ttl=24*60*60)
 def tonnage_histogram(date_from, date_to, basin, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query(Ship.tonnage).\
@@ -166,6 +173,8 @@ def tonnage_histogram(date_from, date_to, basin, ship_type, ship_flag):
     
     return fig
 
+
+@st.experimental_memo(ttl=24*60*60)
 def age__histogram(date_from, date_to, basin, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query((date.today().year - Ship.year).label('Возраст')).\
@@ -190,6 +199,8 @@ def age__histogram(date_from, date_to, basin, ship_type, ship_flag):
     
     return fig
 
+
+@st.experimental_memo(ttl=24*60*60)
 def ship_type_pie(date_from, date_to, basin, ship_flag, pie):
     with Session(engine) as session:
         query = session.query(
@@ -268,6 +279,7 @@ def ship_type_pie(date_from, date_to, basin, ship_flag, pie):
     return fig
 
 
+@st.experimental_memo(ttl=24*60*60)
 def ship_flag_pie(date_from, date_to, basin, ship_type, pie):
     with Session(engine) as session:
         query = session.query(
@@ -346,6 +358,7 @@ def ship_flag_pie(date_from, date_to, basin, ship_type, pie):
     return fig
 
 
+@st.experimental_memo(ttl=24*60*60)
 def length_histogram(date_from, date_to, basin, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query(Ship.length).\
@@ -372,6 +385,7 @@ def length_histogram(date_from, date_to, basin, ship_type, ship_flag):
     return fig
 
 
+@st.experimental_memo(ttl=24*60*60)
 def width_histogram(date_from, date_to, basin, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query(Ship.width).\
@@ -398,6 +412,7 @@ def width_histogram(date_from, date_to, basin, ship_type, ship_flag):
     return fig
 
 
+@st.experimental_memo(ttl=24*60*60)
 def most_popular(date_from, date_to, basin, ship_type, ship_flag, head=5):
     with Session(engine) as session:
         query = session.query(

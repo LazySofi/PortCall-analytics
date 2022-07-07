@@ -76,11 +76,12 @@ def main():
     make_excel(date_from, date_to, basin, ship_type, ship_flag)
     st.sidebar.info('Данные взяты с сайта: [portcalltable.marinet.ru](https://portcalltable.marinet.ru/index.php)')
 
-    if btn:
+    visualize_data(date_from, date_to, basin, ship_type, ship_flag) 
+    """ if btn:
         visualize_data(date_from, date_to, basin, ship_type, ship_flag)    
     else:
         st.markdown('<br><br>Необходимо нажать кнопку "Применить" или "Скачать Excel"', unsafe_allow_html=True)
-        st.caption('Кнопки находятся внизу параметров')
+        st.caption('Кнопки находятся внизу параметров') """
 
 
 if __name__ == "__main__":
