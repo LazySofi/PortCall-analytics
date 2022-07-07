@@ -11,6 +11,162 @@ import streamlit as st
 import io
 
 
+def ship_type_pie(date_from, date_to, basin, ship_flag, pie):
+    with Session(engine) as session:
+        query = session.query(
+                            Ship.type,
+                            func.count(Ship.type).label('Количество')
+                            ).\
+                        join(PortCall, PortCall.ship_id == Ship.id).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.arrival >= date_from).\
+                        filter(PortCall.arrival <= date_to).\
+                        group_by(Ship.type).\
+                        order_by(desc('Количество')) #                      
+
+        df1 = pd.read_sql(query.statement, query.session.bind)
+
+        query = session.query(
+                            Ship.type,
+                            func.count(Ship.type).label('Количество')
+                            ).\
+                        join(PortCall, PortCall.ship_id == Ship.id).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.arrival >= date_from - timedelta(days=365)).\
+                        filter(PortCall.arrival <= date_to - timedelta(days=365)).\
+                        group_by(Ship.type).\
+                        order_by(desc('Количество'))
+
+        df2 = pd.read_sql(query.statement, query.session.bind)
+
+    num_types = min(df1['Тип судна'].unique().shape[0], df2['Тип судна'].unique().shape[0])
+    n = pie.selectbox('Точность', list(range(1, num_types+1)), min (5, num_types)-1)
+
+    df1 = df1.dropna().head(n).append(df1.tail(df1.shape[0] - n).sum(), ignore_index=True)
+    df1.at[n, 'Тип судна'] = 'ДРУГОЕ'
+
+    df2 = df2.dropna().head(n).append(df2.tail(df2.shape[0] - n).sum(), ignore_index=True)
+    df2.at[n, 'Тип судна'] = 'ДРУГОЕ'
+
+    #внешний, сейчас
+    trace1 =  go.Pie(
+            values=df1['Количество'],
+            labels=df1['Тип судна'],
+            name="(сейчас)",
+            marker = dict(line =dict(color='#000000', width=1)),
+            hole=0.52,
+            hoverinfo="text",
+            hovertemplate="Тип судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}"
+    )
+
+    #внутренний, год назад
+    trace0 = go.Pie(
+            values=df2['Количество'],
+            labels=df2['Тип судна'],
+            domain = {'x': [0.24, 0.76]},
+            name="(год назад)",
+            marker = dict(line =dict(color='#000000', width=1)),
+            hoverinfo="text",
+            hovertemplate="Тип судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}",
+            #hole=0.02
+            )
+
+    data = [trace1, trace0]
+    fig = go.Figure(data=data)
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=0, b=0)
+    )
+    fig.update(
+        layout_showlegend=False
+    )
+
+    return fig
+
+
+def ship_flag_pie(date_from, date_to, basin, ship_type, pie):
+    with Session(engine) as session:
+        query = session.query(
+                            Ship.flag,
+                            func.count(Ship.flag).label('Количество')
+                            ).\
+                        join(PortCall, PortCall.ship_id == Ship.id).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.arrival >= date_from).\
+                        filter(PortCall.arrival <= date_to).\
+                        group_by(Ship.flag).\
+                        order_by(desc('Количество'))
+
+        df1 = pd.read_sql(query.statement, query.session.bind)
+    
+    with Session(engine) as session:
+        query = session.query(
+                            Ship.flag,
+                            func.count(Ship.flag).label('Количество')
+                            ).\
+                        join(PortCall, PortCall.ship_id == Ship.id).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.arrival >= date_from - timedelta(days=365)).\
+                        filter(PortCall.arrival <= date_to - timedelta(days=365)).\
+                        group_by(Ship.flag).\
+                        order_by(desc('Количество'))
+
+        df2 = pd.read_sql(query.statement, query.session.bind)
+
+    num_types = min(df1['Флаг судна'].unique().shape[0], df2['Флаг судна'].unique().shape[0])
+    n = pie.selectbox('Точность', list(range(1, num_types+1)), min (5, num_types)-1)
+
+    df1 = df1.dropna().head(n).append(df1.tail(df1.shape[0] - n).sum(), ignore_index=True)
+    df1.at[n, 'Флаг судна'] = 'ДРУГОЕ'
+
+    df2 = df2.dropna().head(n).append(df2.tail(df2.shape[0] - n).sum(), ignore_index=True)
+    df2.at[n, 'Флаг судна'] = 'ДРУГОЕ'
+
+    #внешний, сейчас
+    trace1 =  go.Pie(
+            values=df1['Количество'],
+            labels=df1['Флаг судна'],
+            name="(сейчас)",
+            marker = dict(line =dict(color='#000000', width=1)),
+            hole=0.52,
+            hoverinfo="text",
+            hovertemplate="Флаг  судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}"
+    )
+
+    #внутренний, год назад
+    trace0 = go.Pie(
+            values=df2['Количество'],
+            labels=df2['Флаг судна'],
+            domain = {'x': [0.24, 0.76]},
+            name="(год назад)",
+            marker = dict(line =dict(color='#000000', width=1)),
+            hoverinfo="text",
+            hovertemplate="Флаг судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}",
+            )
+
+    data = [trace1, trace0]
+    fig = go.Figure(data=data)
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=10, b=10)
+    )
+    fig.update(
+        layout_showlegend=False
+    )
+
+    return fig
+
+
 #параметры
 
 @st.experimental_memo(ttl=24*60*60)
@@ -200,160 +356,6 @@ def age__histogram(date_from, date_to, basin, ship_type, ship_flag):
     return fig
 
 
-def ship_type_pie(date_from, date_to, basin, ship_flag, pie):
-    with Session(engine) as session:
-        query = session.query(
-                            Ship.type,
-                            func.count(Ship.type).label('Количество')
-                            ).\
-                        join(PortCall, PortCall.ship_id == Ship.id).\
-                        join(Port, PortCall.port_id == Port.id).\
-                        filter(Port.basin.in_(tuple(basin))).\
-                        filter(Ship.flag.in_(tuple(ship_flag))).\
-                        filter(PortCall.ship_id != None).\
-                        filter(PortCall.arrival >= date_from).\
-                        filter(PortCall.arrival <= date_to).\
-                        group_by(Ship.type).\
-                        order_by(desc('Количество')) #                      
-
-        df1 = pd.read_sql(query.statement, query.session.bind)
-
-        query = session.query(
-                            Ship.type,
-                            func.count(Ship.type).label('Количество')
-                            ).\
-                        join(PortCall, PortCall.ship_id == Ship.id).\
-                        join(Port, PortCall.port_id == Port.id).\
-                        filter(Port.basin.in_(tuple(basin))).\
-                        filter(Ship.flag.in_(tuple(ship_flag))).\
-                        filter(PortCall.ship_id != None).\
-                        filter(PortCall.arrival >= date_from - timedelta(days=365)).\
-                        filter(PortCall.arrival <= date_to - timedelta(days=365)).\
-                        group_by(Ship.type).\
-                        order_by(desc('Количество'))
-
-        df2 = pd.read_sql(query.statement, query.session.bind)
-
-    num_types = min(df1['Тип судна'].unique().shape[0], df2['Тип судна'].unique().shape[0])
-    n = pie.selectbox('Точность', list(range(1, num_types+1)), min (5, num_types)-1)
-
-    df1 = df1.dropna().head(n).append(df1.tail(df1.shape[0] - n).sum(), ignore_index=True)
-    df1.at[n, 'Тип судна'] = 'ДРУГОЕ'
-
-    df2 = df2.dropna().head(n).append(df2.tail(df2.shape[0] - n).sum(), ignore_index=True)
-    df2.at[n, 'Тип судна'] = 'ДРУГОЕ'
-
-    #внешний, сейчас
-    trace1 =  go.Pie(
-            values=df1['Количество'],
-            labels=df1['Тип судна'],
-            name="(сейчас)",
-            marker = dict(line =dict(color='#000000', width=1)),
-            hole=0.52,
-            hoverinfo="text",
-            hovertemplate="Тип судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}"
-    )
-
-    #внутренний, год назад
-    trace0 = go.Pie(
-            values=df2['Количество'],
-            labels=df2['Тип судна'],
-            domain = {'x': [0.24, 0.76]},
-            name="(год назад)",
-            marker = dict(line =dict(color='#000000', width=1)),
-            hoverinfo="text",
-            hovertemplate="Тип судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}",
-            #hole=0.02
-            )
-
-    data = [trace1, trace0]
-    fig = go.Figure(data=data)
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=0, b=0)
-    )
-    fig.update(
-        layout_showlegend=False
-    )
-
-    return fig
-
-
-def ship_flag_pie(date_from, date_to, basin, ship_type, pie):
-    with Session(engine) as session:
-        query = session.query(
-                            Ship.flag,
-                            func.count(Ship.flag).label('Количество')
-                            ).\
-                        join(PortCall, PortCall.ship_id == Ship.id).\
-                        join(Port, PortCall.port_id == Port.id).\
-                        filter(Port.basin.in_(tuple(basin))).\
-                        filter(Ship.type.in_(tuple(ship_type))).\
-                        filter(PortCall.ship_id != None).\
-                        filter(PortCall.arrival >= date_from).\
-                        filter(PortCall.arrival <= date_to).\
-                        group_by(Ship.flag).\
-                        order_by(desc('Количество'))
-
-        df1 = pd.read_sql(query.statement, query.session.bind)
-    
-    with Session(engine) as session:
-        query = session.query(
-                            Ship.flag,
-                            func.count(Ship.flag).label('Количество')
-                            ).\
-                        join(PortCall, PortCall.ship_id == Ship.id).\
-                        join(Port, PortCall.port_id == Port.id).\
-                        filter(Port.basin.in_(tuple(basin))).\
-                        filter(Ship.type.in_(tuple(ship_type))).\
-                        filter(PortCall.ship_id != None).\
-                        filter(PortCall.arrival >= date_from - timedelta(days=365)).\
-                        filter(PortCall.arrival <= date_to - timedelta(days=365)).\
-                        group_by(Ship.flag).\
-                        order_by(desc('Количество'))
-
-        df2 = pd.read_sql(query.statement, query.session.bind)
-
-    num_types = min(df1['Флаг судна'].unique().shape[0], df2['Флаг судна'].unique().shape[0])
-    n = pie.selectbox('Точность', list(range(1, num_types+1)), min (5, num_types)-1)
-
-    df1 = df1.dropna().head(n).append(df1.tail(df1.shape[0] - n).sum(), ignore_index=True)
-    df1.at[n, 'Флаг судна'] = 'ДРУГОЕ'
-
-    df2 = df2.dropna().head(n).append(df2.tail(df2.shape[0] - n).sum(), ignore_index=True)
-    df2.at[n, 'Флаг судна'] = 'ДРУГОЕ'
-
-    #внешний, сейчас
-    trace1 =  go.Pie(
-            values=df1['Количество'],
-            labels=df1['Флаг судна'],
-            name="(сейчас)",
-            marker = dict(line =dict(color='#000000', width=1)),
-            hole=0.52,
-            hoverinfo="text",
-            hovertemplate="Флаг  судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}"
-    )
-
-    #внутренний, год назад
-    trace0 = go.Pie(
-            values=df2['Количество'],
-            labels=df2['Флаг судна'],
-            domain = {'x': [0.24, 0.76]},
-            name="(год назад)",
-            marker = dict(line =dict(color='#000000', width=1)),
-            hoverinfo="text",
-            hovertemplate="Флаг судна: %{label}<br>Кол-во судов: %{value}<br>Процент: %{percent}",
-            )
-
-    data = [trace1, trace0]
-    fig = go.Figure(data=data)
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=10, b=10)
-    )
-    fig.update(
-        layout_showlegend=False
-    )
-
-    return fig
 
 
 @st.experimental_memo(ttl=24*60*60)
