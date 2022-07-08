@@ -71,13 +71,12 @@ def main():
 
     date_from, date_to, basin, ship_type, ship_flag = params()
 
-    btn = st.sidebar.button('Применить')
+    #btn = st.sidebar.button('Применить')
 
     make_excel(date_from, date_to, basin, ship_type, ship_flag)
     st.sidebar.info('Данные взяты с сайта: [portcalltable.marinet.ru](https://portcalltable.marinet.ru/index.php)')
 
-    visualize_data(date_from, date_to, basin, ship_type, ship_flag) 
-
+    visualize_data(date_from, date_to, basin, ship_type, ship_flag)
 
 if __name__ == "__main__":
     main()
