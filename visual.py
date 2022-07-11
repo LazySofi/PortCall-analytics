@@ -26,6 +26,11 @@ def visualize_data(date_from, date_to, basin, ship_type, ship_flag):
     st.subheader('Тепловая карта судозаходов по всем бассейнам')
     st.caption('Цветом обозначена частота судозаходов. Учитываются все праметры, кроме параметра "Бассейн"')
     st.plotly_chart(heat_map_ship_call_dynamics(date_from, date_to, ship_type, ship_flag), use_container_width=True)
+    
+    #Общий приток и отток грузов
+    st.subheader('Общий приток и отток грузов')
+    st.caption('Так как не известен процент загрузки кораблей, то указано максмально возможное значение (также нельзя выделить типы грузов)')
+    st.plotly_chart(tonnage_dynamics(date_from, date_to, basin, ship_type, ship_flag))
 
     #валовая вместимость в тоннах, возраст судна
     histogram01,  histogram02 = st.columns([1, 1])
