@@ -5,15 +5,36 @@ from lib_visual import *
 
 
 def params():
+    list_basins = basins()[0].values.tolist()
+    list_flags = ship_flags()[0].values.tolist()
+    list_types = ship_types()[0].values.tolist()
 
     dates = st.sidebar.columns([1, 1])
     with dates[0]:
         date_from = st.date_input('Дата с', date.today() - timedelta(days=30))
     with dates[1]:
         date_to = st.date_input('по', date.today())
-    basin = st.sidebar.multiselect('Бассейн', basins(), 'Дальневосточный бассейн')
-    ship_type = st.sidebar.multiselect('Тип судна', ship_types(),  '60 / General cargo/multi-purpose ship')
-    ship_flag = st.sidebar.multiselect('Флаг судна', ship_flags(), 'RU - RUSSIAN FEDERATION')
+    
+    container_basins = st.sidebar.container()
+    basins_all = st.sidebar.checkbox("Все бассейны")
+    if basins_all:
+        basin =  container_basins.multiselect('Бассейн', list_basins, list_basins)
+    else:
+        basin =  container_basins.multiselect('Бассейн', list_basins, 'Дальневосточный бассейн')
+
+    container_ship_type = st.sidebar.container()
+    ship_type_all = st.sidebar.checkbox("Все типы судна")
+    if ship_type_all:
+        ship_type =  container_ship_type.multiselect('Тип судна', list_types, list_types)
+    else:
+        ship_type =  container_ship_type.multiselect('Тип судна', list_types, '60 / General cargo/multi-purpose ship')
+
+    container_ship_flag = st.sidebar.container()
+    ship_flag_all = st.sidebar.checkbox("Все флаги")
+    if ship_flag_all:
+        ship_flag=  container_ship_flag.multiselect('Флаг судна', list_flags, list_flags)
+    else:
+        ship_flag =  container_ship_flag.multiselect('Флаг судна', list_flags, 'RU - RUSSIAN FEDERATION')
 
     return date_from, date_to, basin, ship_type, ship_flag
 
