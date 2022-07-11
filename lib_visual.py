@@ -166,6 +166,98 @@ def ship_flag_pie(date_from, date_to, basin, ship_type, pie):
 
     return fig
 
+def tonnage_dynamics(date_from, date_to, basin, ship_type, ship_flag):
+    with Session(engine) as session:
+        query = session.query(
+                            Port.basin, 
+                            func.date_trunc('week', PortCall.arrival).label('week'),
+                            Ship.id,
+                            Ship.tonnage,
+                            func.count(PortCall.arrival).label('Количество судозаходов')
+                            ).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        join(Ship, PortCall.ship_id == Ship.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.arrival >= func.date_trunc('week', date_from)).\
+                        filter(PortCall.arrival <= func.date_trunc('week', date_to)).\
+                        group_by(Port.basin, 'week', Ship.id,  Ship.tonnage).\
+                        order_by('week')
+
+        df = pd.read_sql(query.statement, query.session.bind)
+        df['Общий тоннаж'] = df['Регист. вместим. валовая [т]'] * df['Количество судозаходов']
+
+    piv1 = pd.pivot_table(
+        df,
+        index=['week'],
+        values=['Общий тоннаж'],
+        aggfunc=[np.sum],
+        fill_value=0
+    )
+
+    with Session(engine) as session:
+        query = session.query(
+                            Port.basin, 
+                            func.date_trunc('week', PortCall.departure).label('week'),
+                            Ship.id,
+                            Ship.tonnage,
+                            func.count(PortCall.departure).label('Количество судозаходов')
+                            ).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        join(Ship, PortCall.ship_id == Ship.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.departure != None).\
+                        filter(PortCall.departure >= func.date_trunc('week', date_from)).\
+                        filter(PortCall.departure <= func.date_trunc('week', date_to)).\
+                        group_by(Port.basin, 'week', Ship.id,  Ship.tonnage).\
+                        order_by('week')
+
+        df = pd.read_sql(query.statement, query.session.bind)
+        df['Общий тоннаж'] = df['Регист. вместим. валовая [т]'] * df['Количество судозаходов']
+
+    piv2 = pd.pivot_table(
+        df,
+        index=['week'],
+        values=['Общий тоннаж'],
+        aggfunc=[np.sum],
+        fill_value=0
+    )
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            x = piv1.index,
+            y = piv1[('sum', 'Общий тоннаж')],
+            name = 'Прибыло',
+            hoverinfo="text",
+            hovertemplate="Неделя начинающаяся с %{x}<br>Максимальный обьем пришедшего груза [т]: %{y}"
+        )
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x = piv2.index,
+            y = piv2[('sum', 'Общий тоннаж')],
+            name = 'Убыло',
+            hoverinfo="text",
+            hovertemplate="Неделя начинающаяся с %{x}<br>Максимальный обьем ушедшего груза [т]: %{y}"
+        )
+    )
+    fig.update(
+        layout_showlegend=False
+    )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=20, b=20),
+        height = 300
+    )
+    return fig
+
 
 #параметры
 
@@ -354,100 +446,6 @@ def age__histogram(date_from, date_to, basin, ship_type, ship_flag):
         )
     
     return fig
-
-
-def tonnage_dynamics(date_from, date_to, basin, ship_type, ship_flag):
-    with Session(engine) as session:
-        query = session.query(
-                            Port.basin, 
-                            func.date_trunc('week', PortCall.arrival).label('week'),
-                            Ship.id,
-                            Ship.tonnage,
-                            func.count(PortCall.arrival).label('Количество судозаходов')
-                            ).\
-                        join(Port, PortCall.port_id == Port.id).\
-                        join(Ship, PortCall.ship_id == Ship.id).\
-                        filter(Port.basin.in_(tuple(basin))).\
-                        filter(Ship.flag.in_(tuple(ship_flag))).\
-                        filter(Ship.type.in_(tuple(ship_type))).\
-                        filter(PortCall.ship_id != None).\
-                        filter(PortCall.arrival >= func.date_trunc('week', date_from)).\
-                        filter(PortCall.arrival <= func.date_trunc('week', date_to)).\
-                        group_by(Port.basin, 'week', Ship.id,  Ship.tonnage).\
-                        order_by('week')
-
-        df = pd.read_sql(query.statement, query.session.bind)
-        df['Общий тоннаж'] = df['Регист. вместим. валовая [т]'] * df['Количество судозаходов']
-
-    piv1 = pd.pivot_table(
-        df,
-        index=['week'],
-        values=['Общий тоннаж'],
-        aggfunc=[np.sum],
-        fill_value=0
-    )
-
-    with Session(engine) as session:
-        query = session.query(
-                            Port.basin, 
-                            func.date_trunc('week', PortCall.departure).label('week'),
-                            Ship.id,
-                            Ship.tonnage,
-                            func.count(PortCall.departure).label('Количество судозаходов')
-                            ).\
-                        join(Port, PortCall.port_id == Port.id).\
-                        join(Ship, PortCall.ship_id == Ship.id).\
-                        filter(Port.basin.in_(tuple(basin))).\
-                        filter(Ship.flag.in_(tuple(ship_flag))).\
-                        filter(Ship.type.in_(tuple(ship_type))).\
-                        filter(PortCall.ship_id != None).\
-                        filter(PortCall.departure != None).\
-                        filter(PortCall.departure >= func.date_trunc('week', date_from)).\
-                        filter(PortCall.departure <= func.date_trunc('week', date_to)).\
-                        group_by(Port.basin, 'week', Ship.id,  Ship.tonnage).\
-                        order_by('week')
-
-        df = pd.read_sql(query.statement, query.session.bind)
-        df['Общий тоннаж'] = df['Регист. вместим. валовая [т]'] * df['Количество судозаходов']
-
-    piv2 = pd.pivot_table(
-        df,
-        index=['week'],
-        values=['Общий тоннаж'],
-        aggfunc=[np.sum],
-        fill_value=0
-    )
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Bar(
-            x = piv1.index,
-            y = piv1[('sum', 'Общий тоннаж')],
-            name = 'Прибыло',
-            hoverinfo="text",
-            hovertemplate="Неделя начинающаяся с %{x}<br>Максимальный обьем пришедшего груза [т]: %{y}"
-        )
-    )
-
-    fig.add_trace(
-        go.Bar(
-            x = piv2.index,
-            y = piv2[('sum', 'Общий тоннаж')],
-            name = 'Убыло',
-            hoverinfo="text",
-            hovertemplate="Неделя начинающаяся с %{x}<br>Максимальный обьем ушедшего груза [т]: %{y}"
-        )
-    )
-    fig.update(
-        layout_showlegend=False
-    )
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=20, b=20),
-        height = 300
-    )
-    return fig
-
 
 @st.experimental_memo(ttl=24*60*60)
 def length_histogram(date_from, date_to, basin, ship_type, ship_flag):
