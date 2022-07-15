@@ -396,6 +396,195 @@ def heat_map_ship_call_dynamics(date_from, date_to, ship_type, ship_flag):
 
 
 @st.experimental_memo(ttl=24*60*60)
+def ship_call_dynamics_ports(date_from, date_to, basin, ship_type, ship_flag):
+    with Session(engine) as session:
+        query = session.query(
+                            Port.name, 
+                            func.date_trunc('day', PortCall.arrival).label('day'),
+                            func.count(PortCall.arrival).label('Количество судозаходов')).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        join(Ship, PortCall.ship_id == Ship.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.arrival >= date_from).\
+                        filter(PortCall.arrival <= date_to).\
+                        filter(PortCall.ship_id != None).\
+                        group_by(Port.name, 'day').\
+                        order_by('day')
+
+        df = pd.read_sql(query.statement, query.session.bind)
+        df['Название порта'] = df['Название порта'] + ' (заходы)'
+        
+
+    piv = pd.pivot_table(
+        df,
+        index=['day'],
+        values=['Количество судозаходов'],
+        columns=['Название порта',],
+        aggfunc=[np.sum],
+        fill_value=0
+    )
+    
+    fig = go.Figure()
+    fig.update_xaxes(range=[date_from, date_to])
+    for i in piv.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=piv.index,
+                y=piv[i],
+                name=i[2],
+                visible = 'legendonly'
+            )
+        )
+
+    with Session(engine) as session:
+        query = session.query(
+                            Port.name, 
+                            func.date_trunc('day', PortCall.departure).label('day'),
+                            func.count(PortCall.departure).label('Количество судовыходов')).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        join(Ship, PortCall.ship_id == Ship.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.departure >= date_from).\
+                        filter(PortCall.departure <= date_to).\
+                        filter(PortCall.ship_id != None).\
+                        group_by(Port.name, 'day').\
+                        order_by('day')
+
+        df = pd.read_sql(query.statement, query.session.bind)
+        df['Название порта'] = df['Название порта'] + ' (выходы)'
+        
+
+    piv = pd.pivot_table(
+        df,
+        index=['day'],
+        values=['Количество судовыходов'],
+        columns=['Название порта',],
+        aggfunc=[np.sum],
+        fill_value=0
+    )
+
+    for i in piv.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=piv.index,
+                y=piv[i],
+                name=i[2],
+                visible = 'legendonly'
+            )
+        )
+
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=20, b=20),
+        height = 350
+        )
+    fig.update_traces(hoverinfo="text", hovertemplate="Дата: %{x}<br>Кол-во судов: %{y}")
+    
+    return fig
+
+
+@st.experimental_memo(ttl=24*60*60)
+def heat_map_ship_call_dynamics_ports_in(date_from, date_to, basin, ship_type, ship_flag):
+    with Session(engine) as session:
+        query = session.query(
+                            Port.name, 
+                            func.date_trunc('day', PortCall.arrival).label('day'),
+                            func.count(PortCall.arrival).label('Количество судозаходов')
+                        ).\
+                        join(Ship, PortCall.ship_id == Ship.id).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.arrival >= date_from).\
+                        filter(PortCall.arrival <= date_to).\
+                        group_by(Port.name, 'day').\
+                        order_by('day')
+
+        df = pd.read_sql(query.statement, query.session.bind)
+
+    piv = pd.pivot_table(
+        df,
+        index=['day'],
+        values=['Количество судозаходов'],
+        columns=['Название порта',],
+        aggfunc=[np.sum],
+        fill_value=0
+    )
+
+    df = pd.DataFrame(piv)
+    
+    fig = go.Figure(
+        go.Heatmap(
+                z = df.T,
+                x = df.index,
+                y=[c[2] for c in df.columns],
+                name = ''
+            )
+        )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=20, b=20),
+        )
+    fig.update_traces(hoverinfo="text", hovertemplate="Дата: %{x}<br>Порт: %{y}<br>Кол-во судов: %{z}")
+    fig.update_yaxes(tickangle=285)
+    
+    return fig
+
+
+@st.experimental_memo(ttl=24*60*60)
+def heat_map_ship_call_dynamics_ports_out(date_from, date_to, basin, ship_type, ship_flag):
+    with Session(engine) as session:
+        query = session.query(
+                            Port.name, 
+                            func.date_trunc('day', PortCall.departure).label('day'),
+                            func.count(PortCall.arrival).label('Количество судовыходов')
+                        ).\
+                        join(Ship, PortCall.ship_id == Ship.id).\
+                        join(Port, PortCall.port_id == Port.id).\
+                        filter(Port.basin.in_(tuple(basin))).\
+                        filter(Ship.flag.in_(tuple(ship_flag))).\
+                        filter(Ship.type.in_(tuple(ship_type))).\
+                        filter(PortCall.ship_id != None).\
+                        filter(PortCall.departure >= date_from).\
+                        filter(PortCall.departure <= date_to).\
+                        group_by(Port.name, 'day').\
+                        order_by('day')
+
+        df = pd.read_sql(query.statement, query.session.bind)
+
+    piv = pd.pivot_table(
+        df,
+        index=['day'],
+        values=['Количество судовыходов'],
+        columns=['Название порта',],
+        aggfunc=[np.sum],
+        fill_value=0
+    )
+
+    df = pd.DataFrame(piv)
+    
+    fig = go.Figure(
+        go.Heatmap(
+                z = df.T,
+                x = df.index,
+                y=[c[2] for c in df.columns],
+                name = ''
+            )
+        )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=20, b=20),
+        )
+    fig.update_traces(hoverinfo="text", hovertemplate="Дата: %{x}<br>Порт: %{y}<br>Кол-во судов: %{z}")
+    fig.update_yaxes(tickangle=285)
+    
+    return fig
+
+
+@st.experimental_memo(ttl=24*60*60)
 def tonnage_histogram(date_from, date_to, basin, ship_type, ship_flag):
     with Session(engine) as session:
         query = session.query(Ship.tonnage).\

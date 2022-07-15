@@ -88,6 +88,15 @@ def visualize_data(date_from, date_to, basin, ship_type, ship_flag):
     st.caption('Информация о ТОП-10 кораблях по частоте заходов в порты по выбранным параметрам<br>Таблица листается вправо', unsafe_allow_html=True)
     st.write(most_popular(date_from, date_to, basin, ship_type, ship_flag, 10))
 
+    st.subheader('Информация разбитая по портам')
+    st.caption('Для того чтобы отобразить на первом графике рисунок нажмите на нужные порты на легенде.<br>Для того чтобы их скрыть необходимо еще раз нажать на название в легенде', unsafe_allow_html=True)
+    st.plotly_chart(ship_call_dynamics_ports(date_from, date_to, basin, ship_type, ship_flag))
+    port1,  port2 = st.columns([1, 1])
+    port1.text('Судозаходы')
+    port1.plotly_chart(heat_map_ship_call_dynamics_ports_in(date_from, date_to, basin, ship_type, ship_flag), use_container_width=True)
+    port2.text('Судовыходы')
+    port2.plotly_chart(heat_map_ship_call_dynamics_ports_out(date_from, date_to, basin, ship_type, ship_flag),  use_container_width=True)
+
 
 def main():
     st.write(**st.secrets["postgres"])
