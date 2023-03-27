@@ -5,3 +5,4 @@ SQLAlchemy==1.4.37
 streamlit
 psycopg2-binary
 XlsxWriter
+inotify
